@@ -68,13 +68,56 @@ Super Spine switches are shared across the entire fabric and interconnect Spine 
 - Tenant attachment is defined per leaf pair
 
 ## 7. VLAN Model
-Two VLAN types are supported:
-1. Fabric-local VLAN
-2. Stretched VLAN
+
+Two VLAN classes are supported:
+
+1. Fabric-local VLAN  
+2. Multi-site VLAN  
+
+### VLAN Classification
+
+VLAN class is NOT defined in intent.
+It is derived from VLAN ID:
+
+- Fabric-local VLAN: 100–999  
+- Multi-site VLAN: 1000–4094  
+
+### Fabric-local VLAN
+
+- Exists independently within each fabric
+- Same VLAN ID MAY repeat across fabrics
+- VLAN instances in different fabrics are independent
+- No L2 extension across fabrics
+- L3 addressing must be different per fabric
+
+Identity:
+(fabric_id, vlan_id)
+
+### Multi-site VLAN
+
+- Represents one logical VLAN across multiple fabrics
+- Same VLAN ID = same L2 segment across fabrics
+- L2 extension is enabled via DCI
+- VNI must be identical across fabrics
+
+Identity:
+vlan_id
+
+### VLAN Presence and Attachment
+
+- VLAN is created ONLY where it is attached
+- No implicit propagation
+- Attachment fully defines where VLAN exists
 
 ### VLAN Modes
+
 - L2-only (no SVI)
 - L3 (with SVI / Anycast Gateway)
+
+### Design Principle
+
+VLAN behavior must be fully derived.
+Intent MUST NOT define VLAN type explicitly.
 
 ## 8. VNI / RD / RT
 - VNI is automatically allocated

@@ -1,0 +1,61 @@
+# fabric.yaml
+# Intent file.
+#
+# This file is authored in accordance with:
+# - network_architecture.md  (defines system design and semantics)
+# - conventions.md           (defines deterministic rules and ranges)
+#
+# All data in this file follows those documents.
+# Derived values and behavior must be calculated using conventions.md.
+
+fabrics:
+  - fabric_id: 1
+    name: fabric-1
+    asn: 65001
+
+    blocks:
+      - block_type: compute
+        leaf_pairs: 2
+        spines: 2
+
+  - fabric_id: 2
+    name: fabric-2
+    asn: 65002
+
+    blocks:
+      - block_type: compute
+        leaf_pairs: 2
+        spines: 2
+
+tenants:
+  - tenant_name: infra
+    vrf_id: 101
+    description: infrastructure
+
+    vlans:
+      - vlan_id: 100
+        name: mgmt
+        mode: l3
+
+      - vlan_id: 200
+        name: storage
+        mode: l3
+
+      - vlan_id: 300
+        name: backup
+        mode: l3
+
+      - vlan_id: 1200
+        name: db
+        mode: l2
+
+    attachment:
+      - fabric_id: 1
+        block_type: compute
+        leaf_pair_ids: [1, 2]
+        vlans: [100, 200, 300, 1200]
+
+      - fabric_id: 2
+        block_type: compute
+        leaf_pair_ids: [1, 2]
+        vlans: [100, 200, 300, 1200]
