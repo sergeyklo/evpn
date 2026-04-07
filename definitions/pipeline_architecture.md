@@ -3,7 +3,6 @@
 ## Overview
 
 This document defines the execution flow, responsibilities, and data transformations of the EVPN/VXLAN configuration pipeline.
-
 The pipeline converts human-authored intent (`fabric.yaml`) into fully rendered, deterministic per-device configurations.
 
 The system is designed to be:
@@ -18,26 +17,21 @@ The system is designed to be:
 ```text
 evpn/
 ├── initial_prompt.txt
-│
-├── definitions/
+│   ├── definitions/
 │   ├── conventions.md
 │   ├── network_architecture.md
 │   └── pipeline_architecture.md
-│
-├── intent/
+│   ├── intent/
 │   └── fabric.yaml
-│
-├── pipeline/
+│   ├── pipeline/
 │   ├── validate_fabric_yaml.py
 │   ├── build_model.py
 │   ├── validate_model.py
 │   ├── render_configs.py
 │   └── main.py
-│
-├── outputs/
-│
-└── notes/
-    └── commit.txt
+│   ├── outputs/
+│   └── notes/
+└── commit.txt
 ```
 
 ---
@@ -46,29 +40,25 @@ evpn/
 
 ```text
 Human
-  │
-  ▼
+│
+▼
 intent/fabric.yaml
-  │
-  ▼
+│
+▼
 pipeline/validate_fabric_yaml.py
-  │
-  ├── FAIL → STOP (show errors)
-  │
-  └── PASS
-        ▼
+│   ├── FAIL → STOP (show errors)
+│   └── PASS
+▼
 pipeline/build_model.py
-        ▼
+▼
 derived model
-        ▼
+▼
 pipeline/validate_model.py
-        │
-        ├── FAIL → STOP (show errors)
-        │
-        └── PASS
-              ▼
+│   ├── FAIL → STOP (show errors)
+│   └── PASS
+▼
 pipeline/render_configs.py
-              ▼
+▼
 device configurations
 ```
 
@@ -80,27 +70,27 @@ device configurations
 definitions/network_architecture.md ─┐
                                      ├── defines rules and semantics
 definitions/conventions.md ---------┘
-
-                    ▼
-             intent/fabric.yaml
-                    ▼
-     pipeline/validate_fabric_yaml.py
-                    ▼
-             validated intent
-                    ▼
-         pipeline/build_model.py
-                    ├── uses definitions/conventions.md
-                    ├── uses definitions/network_architecture.md
-                    ▼
-               derived model
-                    ▼
-        pipeline/validate_model.py
-                    ▼
-              validated model
-                    ▼
-        pipeline/render_configs.py
-                    ▼
-               configurations
+                │
+                ▼
+intent/fabric.yaml
+                ▼
+pipeline/validate_fabric_yaml.py
+                ▼
+          validated intent
+                ▼
+pipeline/build_model.py
+  ├── uses definitions/conventions.md
+  ├── uses definitions/network_architecture.md
+                ▼
+            derived model
+                ▼
+pipeline/validate_model.py
+                ▼
+           validated model
+                ▼
+pipeline/render_configs.py
+                ▼
+            configurations
 ```
 
 ---
@@ -121,6 +111,12 @@ definitions/conventions.md ---------┘
   - `definitions/network_architecture.md`
   - `definitions/conventions.md`
 
+**Intent Boundaries:**
+- `fabric.yaml` is the single source of truth for deployment intent.
+- It defines what should exist in the fabric, not how devices should be configured.
+- It may define fabrics, blocks, tenants, VRFs, VLANs, placement, and optional static routes.
+- It must not define derived values such as VNI, RD, RT, loopbacks, P2P addressing, router IDs, protocol neighbor relationships, or rendered device-level configuration.
+
 ---
 
 ### 2. Intent Validation
@@ -136,6 +132,13 @@ definitions/conventions.md ---------┘
 - ranges (VLAN IDs, VRF IDs)
 - semantics (for example multisite VLAN usage)
 - consistency (no duplicates, all VLANs attached)
+
+**Validation Contract:**
+- required top-level sections must be present
+- references must be valid
+- required identifiers must be unique
+- forbidden or derived-only fields must not appear in intent
+- validated intent remains declarative input and is not enriched with derived values at this stage
 
 **Output:**
 - PASS → continue
@@ -162,6 +165,11 @@ definitions/conventions.md ---------┘
   - P2P addressing
   - router IDs
   - BGP/EVPN relationships
+
+**Derived Model Contract:**
+- build_model.py must produce a normalized and fully derived model
+- the model must include the topology, device inventory, tenant objects, attachment expansion, derived identifiers, addressing, protocol relationships, and per-device desired state needed for rendering
+- all derived values must be deterministic and reproducible from intent plus definitions
 
 **Output:**
 - derived model (JSON / in-memory)
@@ -236,53 +244,48 @@ definitions/conventions.md ---------┘
 ## Data Model Contract
 
 Pipeline must produce:
+1. parsed intent
+2. normalized intent
+3. derived model
+4. per-device state
+5. rendered configs
 
-1. parsed intent  
-2. normalized intent  
-3. derived model  
-4. per-device state  
-5. rendered configs  
+The derived model must be complete enough that rendering templates do not need to implement business logic.
 
 ---
 
 ## Output Artifacts
 
 **Mandatory:**
-- outputs/model.json  
-- outputs/device_state/<device>.json  
-- outputs/configs/<device>.cfg  
+- `outputs/model.json`
+- `outputs/device_state/<device>.json`
+- `outputs/configs/<device>.cfg`
 
 **Optional:**
-- validation reports  
-- logs  
+- validation reports
+- logs
 
 ---
 
 ## Design Principles
 
 ### Separation of Concerns
-- intent → desired state only  
-- definitions → rules and semantics  
-- pipeline → execution  
-- outputs → generated artifacts  
-
----
+- intent → desired state only
+- definitions → rules and semantics
+- pipeline → execution
+- outputs → generated artifacts
 
 ### Deterministic Behavior
-- same input → same output  
-- all derived values come from definitions/conventions.md  
-
----
+- same input → same output
+- all derived values come from definitions/conventions.md
 
 ### Fail Fast
-- intent validation prevents bad input  
-- model validation prevents bad derivation  
-
----
+- intent validation prevents bad input
+- model validation prevents bad derivation
 
 ### No Logic in YAML or Templates
-- YAML contains no computed values  
-- templates contain no business logic  
+- YAML contains no computed values
+- templates contain no business logic
 
 ---
 
@@ -308,9 +311,8 @@ python pipeline/main.py render --model outputs/model.json --output-dir outputs/c
 ## Summary
 
 The pipeline guarantees:
-
-- validated human intent  
-- correct derived model  
-- deterministic configurations  
+- validated human intent
+- correct derived model
+- deterministic configurations
 
 This enables safe, scalable, and repeatable EVPN fabric deployment.

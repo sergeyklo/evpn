@@ -38,21 +38,13 @@ Full config generation is required every time.
 
 Use the following documents as authoritative inputs:
 
-1. Network Architecture Definitions
+1. Network Architecture Definitions - network_architecture.md
 
-   <PASTE network_architecture.md HERE>
+2. Conventions - conventions.md
 
-2. Conventions
+3. Pipeline Architecture - pipeline_architecture.md
 
-   <PASTE conventions.md HERE>
-
-3. Pipeline Architecture
-
-   <PASTE pipeline_architecture.md HERE>
-
-4. Intent YAML
-
-   <PASTE fabric.yaml HERE OR LEAVE EMPTY IF DESIGNING>
+4. Intent YAML - fabric.yaml
 
 These documents are strict and must not be overridden.
 
